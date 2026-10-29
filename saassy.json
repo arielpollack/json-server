@@ -56,6 +56,20 @@
         "title": "Static files and CORS",
         "description": "Serves ./public and extra --static directories next to the API, with CORS open to all origins for browser prototypes."
       }
+    ],
+    "screenshots": [
+      {
+        "path": "screenshots/terminal.png",
+        "alt": "Terminal output of json-server starting on the sample db.json and listing its posts, comments, and profile endpoints (real output shown in a terminal-style frame)"
+      },
+      {
+        "path": "screenshots/home.png",
+        "alt": "json-server home page listing the /posts, /comments, and /profile resources from the sample db.json"
+      },
+      {
+        "path": "screenshots/embed-response.png",
+        "alt": "Browser showing the JSON response for GET /posts/1?_embed=comments: sample post 1 with its two comments embedded"
+      }
     ]
   },
   "reuse": {
@@ -233,7 +247,7 @@
       }
     ],
     "replacedContent": [
-      "Nothing was replaced: the source is upstream json-server 1.0.0-beta.15 unchanged, with saassy.json and .env.example added"
+      "Nothing was replaced: the source is upstream json-server 1.0.0-beta.15 unchanged, with saassy.json, .env.example, and listing screenshots added"
     ],
     "assumptions": [
       "Node.js 22.12 or newer",
