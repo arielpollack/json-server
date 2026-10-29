@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "name": "json-server",
+  "version": "1.0.0-beta.15",
+  "product": {
+    "title": "JSON Server",
+    "summary": "Full fake REST API from a single JSON or JSON5 file, with filtering, sorting, pagination, and embedding, and writes saved back to the file.",
+    "problems": [
+      "Mock a REST API for frontend prototyping without writing a backend",
+      "Serve a JSON file as a CRUD REST API",
+      "Fake backend for tests, demos, and tutorials",
+      "Try out an API shape before building the real server"
+    ],
+    "workflows": [
+      {
+        "id": "serve-json-file",
+        "title": "Serve a JSON file as a REST API",
+        "description": "Run json-server with a db.json or db.json5 file. Every top-level array becomes a collection with GET, POST, PUT, PATCH, and DELETE routes (/posts, /posts/:id); every top-level object becomes a singular resource (/profile). The server assigns ids to new items and saves every change back to the file."
+      },
+      {
+        "id": "query-collections",
+        "title": "Filter, sort, paginate, and embed",
+        "description": "Query collections with field operators (title:contains=foo, views:gt=100, and lt, lte, gte, eq, ne, in, startsWith, endsWith), a JSON _where filter, _sort (prefix - for descending), _page and _per_page pagination, and _embed to include related items. DELETE with _dependent removes related items too."
+      },
+      {
+        "id": "serve-static-files",
+        "title": "Serve static files next to the API",
+        "description": "Files in ./public, and any directories passed with --static, are served alongside the API, so a prototype frontend and its mock backend run from one process. The home page lists the available resources."
+      }
+    ],
+    "limitations": [
+      "Beta v1: usable but expect breaking changes; the stable line is v0.17",
+      "No authentication or authorization: anyone who can reach the port can read and change all data",
+      "The server listens on all network interfaces; --host and HOST only change the printed URLs",
+      "Data lives in one JSON file, held in memory and rewritten on every change; not suited to large datasets or concurrent writers",
+      "Query filters coerce numeric-looking values to numbers, so postId=1 does not match string ids such as \"1\"",
+      "Client-provided ids are ignored; the server generates random ids for new items",
+      "Built for prototyping, mocking, and tests, not production use"
+    ],
+    "platforms": ["service", "cli"],
+    "category": "developer-tools",
+    "highlights": [
+      {
+        "title": "REST API with zero code",
+        "description": "Every top-level array in the data file becomes a collection with GET, POST, PUT, PATCH, and DELETE routes; objects become singular resources."
+      },
+      {
+        "title": "Filtering, sorting, pagination, embedding",
+        "description": "Field operators (lt, gt, ne, in, contains, startsWith, ...), a JSON _where filter, _sort, _page and _per_page, and _embed for related items."
+      },
+      {
+        "title": "Changes persist to the file",
+        "description": "Writes through the API are saved back to the JSON or JSON5 file, and edits made to the file by hand are reloaded live."
+      },
+      {
+        "title": "Static files and CORS",
+        "description": "Serves ./public and extra --static directories next to the API, with CORS open to all origins for browser prototypes."
+      }
+    ]
+  },
+  "reuse": {
+    "license": "MIT",
+    "licenseFile": "LICENSE",
+    "attribution": "JSON Server is created by typicode and contributors (https://github.com/typicode/json-server). This release is published unchanged from the arielpollack/json-server fork."
+  },
+  "runtime": {
+    "profile": "js-web-service@1",
+    "language": "typescript",
+    "node": ">=22.12.0",
+    "packageManager": "pnpm",
+    "lockfiles": ["pnpm-lock.yaml"],
+    "entryPoints": ["src/bin.ts"]
+  },
+  "configuration": [
+    {
+      "name": "PORT",
+      "type": "number",
+      "description": "Port the server listens on. Defaults to 3000; the --port flag overrides it.",
+      "required": false,
+      "secret": false,
+      "example": "3000"
+    },
+    {
+      "name": "HOST",
+      "type": "string",
+      "description": "Host shown in the printed endpoint URLs. Defaults to localhost; the --host flag overrides it. It does not restrict which interfaces the server listens on.",
+      "required": false,
+      "secret": false,
+      "example": "localhost"
+    }
+  ],
+  "setup": [
+    {
+      "id": "install-and-build",
+      "title": "Install dependencies and build",
+      "description": "Install the locked dependencies with pnpm and compile the TypeScript sources to lib/.",
+      "dependsOn": [],
+      "mode": "agent",
+      "inputs": [],
+      "outputs": [],
+      "commands": [{ "run": "pnpm install --frozen-lockfile" }, { "run": "pnpm run build" }],
+      "verify": {
+        "description": "The CLI prints its version",
+        "commands": [{ "run": "node lib/bin.js --version" }]
+      }
+    },
+    {
+      "id": "create-data-file",
+      "title": "Create your data file",
+      "description": "Start from fixtures/db.json (or db.json5) and replace the sample posts, comments, and profile with your own collections (top-level arrays) and singular resources (top-level objects). Then run node lib/bin.js db.json.",
+      "dependsOn": ["install-and-build"],
+      "mode": "agent",
+      "inputs": [],
+      "outputs": [],
+      "commands": [{ "run": "cp fixtures/db.json db.json" }],
+      "verify": {
+        "description": "With the server running, GET /<collection> for one of your collections returns 200 and your items"
+      }
+    }
+  ],
+  "verification": {
+    "core": {
+      "description": "The node:test suite exercises the service layer (create, update, patch, delete with dependents, embedding), query parsing, pagination, and every REST route through the HTTP app against in-memory fixture data and a temporary file.",
+      "commands": [{ "run": "pnpm test" }]
+    },
+    "serve": {
+      "command": { "run": "node lib/bin.js fixtures/db.json" },
+      "port": 3000,
+      "readyPath": "/",
+      "readyTimeoutSeconds": 60
+    },
+    "probes": [
+      {
+        "id": "home-page",
+        "description": "Home page lists the resources in the data file",
+        "request": { "method": "GET", "path": "/" },
+        "expect": { "status": 200, "bodyIncludes": ["<title>JSON Server</title>", "/posts", "/profile"] }
+      },
+      {
+        "id": "list-collection",
+        "description": "Lists the fixture posts",
+        "request": { "method": "GET", "path": "/posts" },
+        "expect": { "status": 200, "bodyIncludes": ["\"a title\"", "\"another title\""] }
+      },
+      {
+        "id": "get-item",
+        "description": "Gets one post by id",
+        "request": { "method": "GET", "path": "/posts/1" },
+        "expect": { "status": 200, "bodyIncludes": ["\"a title\""], "bodyExcludes": ["another title"] }
+      },
+      {
+        "id": "filter-collection",
+        "description": "Filters posts with a field operator",
+        "request": { "method": "GET", "path": "/posts?title:contains=another" },
+        "expect": { "status": 200, "bodyIncludes": ["\"another title\""], "bodyExcludes": ["\"a title\""] }
+      },
+      {
+        "id": "paginate-collection",
+        "description": "Paginates posts one per page",
+        "request": { "method": "GET", "path": "/posts?_page=1&_per_page=1" },
+        "expect": { "status": 200, "bodyIncludes": ["\"pages\": 2", "\"a title\""], "bodyExcludes": ["another title"] }
+      },
+      {
+        "id": "embed-relations",
+        "description": "Embeds a post's comments",
+        "request": { "method": "GET", "path": "/posts/1?_embed=comments" },
+        "expect": { "status": 200, "bodyIncludes": ["\"comments\"", "a comment about post 1"] }
+      },
+      {
+        "id": "singular-resource",
+        "description": "Reads a singular resource",
+        "request": { "method": "GET", "path": "/profile" },
+        "expect": { "status": 200, "bodyIncludes": ["\"name\""] }
+      },
+      {
+        "id": "create-item",
+        "description": "Creates a post and returns it with a server-generated id",
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "headers": { "content-type": "application/json" },
+          "body": "{\"title\":\"probe post\"}"
+        },
+        "expect": { "status": 201, "bodyIncludes": ["\"probe post\"", "\"id\""] }
+      },
+      {
+        "id": "reject-non-object-body",
+        "description": "Rejects a body that is not a JSON object",
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "headers": { "content-type": "application/json" },
+          "body": "[]"
+        },
+        "expect": { "status": 400, "bodyIncludes": ["Body must be a JSON object"] }
+      },
+      {
+        "id": "missing-item",
+        "description": "Unknown item id returns a JSON 404",
+        "request": { "method": "GET", "path": "/posts/999" },
+        "expect": { "status": 404, "bodyIncludes": ["Not Found"] }
+      },
+      {
+        "id": "missing-resource",
+        "description": "Unknown resource returns a JSON 404",
+        "request": { "method": "GET", "path": "/nope" },
+        "expect": { "status": 404, "bodyIncludes": ["Not Found"] }
+      }
+    ],
+    "fixtures": ["fixtures/db.json", "fixtures/db.json5"]
+  },
+  "data": {
+    "storage": ["The JSON or JSON5 file passed on the command line, rewritten in place on every write"],
+    "collected": ["None by the app itself; it stores whatever clients send to it in the data file"],
+    "outbound": ["None"]
+  },
+  "portability": {
+    "customizationPoints": [
+      {
+        "id": "data-file",
+        "description": "Replace the sample posts, comments, and profile with your own resources",
+        "paths": ["fixtures/db.json", "fixtures/db.json5"]
+      },
+      {
+        "id": "home-page",
+        "description": "Home page template that lists the available resources",
+        "paths": ["views/index.html"]
+      },
+      {
+        "id": "static-files",
+        "description": "Static files served next to the API",
+        "paths": ["public"]
+      }
+    ],
+    "replacedContent": [
+      "Nothing was replaced: the source is upstream json-server 1.0.0-beta.15 unchanged, with saassy.json and .env.example added"
+    ],
+    "assumptions": [
+      "Node.js 22.12 or newer",
+      "pnpm for development; the CI and npm publish workflows, funding link, and sponsor links in README are upstream typicode's",
+      "Sample fixture data uses typicode's handle as the profile name"
+    ]
+  },
+  "costs": [
+    {
+      "description": "Running JSON Server",
+      "estimate": "$0 self-hosted",
+      "asOf": "2026-10-29",
+      "assumptions": "Runs locally or on any Node.js host; that host's pricing applies"
+    }
+  ]
+}
